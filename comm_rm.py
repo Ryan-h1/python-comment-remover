@@ -13,6 +13,7 @@ def remove_comments_dfa(source):
 
     state = CODE
     parenthesis_stack = deque()  # Pseudo pushdown automaton to keep track of parentheses
+    quote_stack = deque()  # Pseudo pushdown automaton to keep track of quotes
     cleaned_source = []
 
     i = 0
@@ -33,15 +34,27 @@ def remove_comments_dfa(source):
             elif char in ")]}":
                 parenthesis_stack.pop()
 
-            # If there are still open parentheses, there is no need to check for comments
+            if len(parenthesis_stack) == 0:
+                quote_stack.clear()
+
             if len(parenthesis_stack) > 0:
-                cleaned_source.append(char)
+                # Logic for tracking quotes inside parentheses
+                if char in "'\"":
+                    if len(quote_stack) > 0 and quote_stack[-1] == char:
+                        quote_stack.pop()
+                    else:
+                        quote_stack.append(char)
+                # Logic for recognizing comments inside parentheses
+                if char == '#' and len(quote_stack) == 0:
+                    state = SINGLE_LINE_COMMENT
+                else:
+                    cleaned_source.append(char)
             elif char == '#':
                 state = SINGLE_LINE_COMMENT
-            elif char == "'" and source[i:i + 3] == "'''":
+            elif char == "'" and source[i:i + 3] == "'''" and not_preceded_by_equals(source, i):
                 state = MULTI_LINE_COMMENT_SINGLE
                 i += 2  # Skip the next two quotes
-            elif char == '"' and source[i:i + 3] == '"""':
+            elif char == '"' and source[i:i + 3] == '"""' and not_preceded_by_equals(source, i):
                 state = MULTI_LINE_COMMENT_DOUBLE
                 i += 2  # Skip the next two quotes
             elif char == "'":
@@ -94,6 +107,14 @@ def remove_comments_dfa(source):
         i += 1
 
     return ''.join(cleaned_source)
+
+
+def not_preceded_by_equals(source, i):
+    for j in range(i - 1, -1, -1):  # Start from i-1 and go backwards
+        if source[j].isspace():  # Skip spaces
+            continue
+        return source[j] != '='
+    return True
 
 
 def main():
