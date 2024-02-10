@@ -111,8 +111,7 @@ def remove_comments_dfa(source):
 
 def not_preceded_by_equals(source, i):
     for j in range(i - 1, -1, -1):  # Start from i-1 and go backwards
-        print("source[j]: ", source[j])
-        if source[j].isspace():  # Skip spaces
+        if source[j].isspace() or source[j] == '\\' or source[j] == '\n':  # backtrack
             continue
         return source[j] != '='
     return True
